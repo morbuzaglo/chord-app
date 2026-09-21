@@ -25,7 +25,7 @@
         <input type="text" id="search-artist-input" placeholder="Artist (optional)" autocomplete="off">
         <button type="submit">Search</button>
       </form>
-      <p class="hint">Needs a server to search Ultimate Guitar/tab4u &mdash; not available in this static deployment. Try "My chords" instead.</p>
+      <p class="hint">Searches Ultimate Guitar and tab4u.com (Hebrew) &mdash; needs <code>server.ps1</code> running; not available on the static GitHub Pages build.</p>
       <div id="search-status" class="status"></div>
       <ul id="search-results" class="result-list"></ul>
     </div>
@@ -35,7 +35,7 @@
         <input type="text" id="url-input" placeholder="Paste a tabs.ultimate-guitar.com or tab4u.com song link" autocomplete="off">
         <button type="submit">Load</button>
       </form>
-      <p class="hint">Needs a server to fetch the page &mdash; not available in this static deployment. Try "My chords" instead.</p>
+      <p class="hint">Only links from Ultimate Guitar and tab4u.com are supported &mdash; needs <code>server.ps1</code> running; not available on the static GitHub Pages build.</p>
     </div>
 
     <div class="tab-content hidden" id="tab-manual">

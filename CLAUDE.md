@@ -16,24 +16,37 @@ favorites store.
   flagged in the UI with an "approx voicing" note, not a bug).
 - Guitar diagrams and piano-key diagrams are rendered as inline SVG.
 
-## Deployed as a static site (2026-09-21)
+## Deployed as a static site + real local backend (2026-09-21)
 
-Pushed to GitHub Pages as a public, backend-free deployment. The original app assumed a small
-server behind `/api/search`, `/api/fetch` (scrape Ultimate Guitar/tab4u, dodging their CORS
-restrictions) and `/api/favorites` (favorites persisted server-side to `favorites.json`) — that
-server was never actually written, so those three things didn't work in any environment, not
-just this one.
+Pushed to GitHub Pages (public, permanent, backend-free) at
+https://morbuzaglo.github.io/chord-app/. The original app assumed a small server behind
+`/api/search`, `/api/fetch` (scrape Ultimate Guitar/tab4u, dodging their CORS restrictions) and
+`/api/favorites` — that server was never actually written, so those three things never worked
+anywhere, not just on Pages.
 
 - **Favorites** now use `localStorage` (`FAVORITES_KEY = 'chords-app-favorites-v1'`) instead of
-  `/api/favorites` — fully functional, just per-browser/device instead of synced.
-  `favorites.json` is gitignored (it also held real scraped, copyrighted lyric/chord text —
-  shouldn't be redistributed via a public repo regardless).
-- **Search and "paste a link"** cannot work client-side-only (Ultimate Guitar/tab4u don't grant
-  CORS to arbitrary origins, and scraping needs a server anyway) — rather than let the `fetch`
-  calls fail silently, `loadSong`/the search-form handler now show `NO_BACKEND_MESSAGE` and the
-  tab hints in `index.html` say so up front. **"My chords" (manual paste/typing) is the only
-  fully-working way to load a song here.** If a real backend gets built later, these are the
-  functions to restore fetch-based behavior in (`loadSong`, the `search-form` submit handler).
+  `/api/favorites`, in both environments — fully functional, just per-browser/device instead of
+  synced. `favorites.json` (the old server-side store) is gitignored — it also held real scraped,
+  copyrighted lyric/chord text, which shouldn't be redistributed via a public repo regardless.
+- **Search and "paste a link"** genuinely need a server (Ultimate Guitar/tab4u don't grant CORS to
+  arbitrary origins, and scraping needs a server-side fetch anyway). `server.ps1` (PowerShell,
+  since this dev machine has no Node/Python) now implements real scraping for both sites — see
+  its own header comment for the exact JSON/HTML shapes it depends on, reverse-engineered
+  2026-09-21 by fetching real UG/tab4u pages and inspecting the response structure directly
+  (UG: the `js-store` `data-content` JSON blob every UG page embeds, `store.page.data.results` /
+  `.tab.song_name` / `.tab_view.wiki_tab.content` with `[ch]`/`[tab]` tags already matching
+  `stripUGTags`'s expectations; tab4u: the `#songContentTPL` table of alternating
+  `<td class="chords">`/`<td class="song">` rows, `&nbsp;`-decoded 1:1 into the same
+  whitespace-positioned `[Chord]` bracket format the manual-entry parser already understands).
+- **One `app.js`, not two forks**: `IS_STATIC_DEPLOY = /\.github\.io$/i.test(location.hostname)`
+  picks behavior by hostname at runtime — on Pages, Search/paste-link show
+  `NO_BACKEND_MESSAGE`; anywhere else (localhost, a devtunnel host, a future real deployment)
+  they call `/api/search` / `/api/fetch` for real. Keep it this way rather than reintroducing a
+  second copy of the file — a hostname check is much harder to accidentally push out of sync
+  than "remember to swap these two functions back before committing."
+- **Running the real backend locally**: `powershell -File server.ps1` (serves the app + APIs on
+  `http://localhost:8787` by default), then `devtunnel host -p 8787 --allow-anonymous` to expose
+  it publicly. The GitHub Pages copy is unaffected either way.
 
 ## Known issues & fixes (already applied — don't reintroduce)
 - **Piano diagram used to overflow its card.** Root cause was a hardcoded `width`/`height`

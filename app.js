@@ -715,15 +715,29 @@ async function toggleFavorite() {
 }
 
 /* ===================== Search / fetch / manual / URL =====================
-   Search and "paste a link" need a server (to scrape Ultimate Guitar/tab4u and dodge their
-   CORS restrictions) that this static GitHub Pages deployment doesn't have. Rather than let
-   the fetch silently fail, tell the user plainly and point them at "My chords". */
+   One codebase, two environments: on github.io (static Pages, no backend) Search/paste-link
+   show an honest "not available here" message; anywhere else (localhost, a devtunnel host,
+   a real deployment) they call this repo's own server.ps1 backend at /api/search /api/fetch.
+   Detected by hostname rather than by probing, so there's no extra round-trip and no silently
+   diverging copies of this file to keep in sync. */
 
-const NO_BACKEND_MESSAGE = 'This static deployment has no server, so loading a song from a link isn’t available here — use "My chords" to paste the chords/lyrics in directly.';
+const IS_STATIC_DEPLOY = /\.github\.io$/i.test(location.hostname);
+const NO_BACKEND_MESSAGE = 'This static deployment has no server, so loading a song from a link isn’t available here — use "My chords" to paste the chords/lyrics in directly, or run server.ps1 locally for full search.';
 
 async function loadSong(url, fallbackTitle, source) {
   const status = document.getElementById('search-status');
-  status.textContent = NO_BACKEND_MESSAGE;
+  if (IS_STATIC_DEPLOY) { status.textContent = NO_BACKEND_MESSAGE; return; }
+  status.textContent = 'Loading chords…';
+  try {
+    const r = await fetch('/api/fetch?url=' + encodeURIComponent(url));
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    const text = stripUGTags(data.raw || '');
+    loadModel(text, data.title || fallbackTitle, data.artist || '', { url, source: source || data.source || '' });
+    status.textContent = '';
+  } catch (err) {
+    status.textContent = 'Could not load that song: ' + err.message;
+  }
 }
 
 function switchTab(name) {
@@ -779,10 +793,61 @@ function init() {
     loadSong(url, url);
   });
 
-  document.getElementById('search-form').addEventListener('submit', (e) => {
+  document.getElementById('search-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    document.getElementById('search-results').innerHTML = '';
-    document.getElementById('search-status').textContent = NO_BACKEND_MESSAGE;
+    if (IS_STATIC_DEPLOY) {
+      document.getElementById('search-results').innerHTML = '';
+      document.getElementById('search-status').textContent = NO_BACKEND_MESSAGE;
+      return;
+    }
+    const song = document.getElementById('search-input').value.trim();
+    const artist = document.getElementById('search-artist-input').value.trim();
+    if (!song) return;
+    const q = artist ? song + ' ' + artist : song;
+    const status = document.getElementById('search-status');
+    const results = document.getElementById('search-results');
+    results.innerHTML = '';
+    status.textContent = 'Searching Ultimate Guitar & tab4u…';
+    try {
+      const r = await fetch('/api/search?q=' + encodeURIComponent(q));
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+      if (!data.results || data.results.length === 0) {
+        status.textContent = 'No results found. Try different words, or paste a direct link / use "My own chords".';
+        return;
+      }
+      status.textContent = data.results.length + ' result(s):';
+      for (const res of data.results) {
+        const li = document.createElement('li');
+        li.dir = hasHebrew(res.title) ? 'rtl' : 'ltr';
+        const main = document.createElement('div');
+        main.className = 'result-main';
+        const label = document.createElement('span');
+        label.className = 'result-label';
+        label.textContent = res.title + (res.artist ? ' — ' + res.artist : '');
+        main.appendChild(label);
+        const metaBits = [];
+        if (res.version) metaBits.push('Ver ' + res.version);
+        if (res.rating) metaBits.push('★' + res.rating + (res.votes ? ' (' + res.votes + ')' : ''));
+        if (res.difficulty) metaBits.push(res.difficulty);
+        if (metaBits.length) {
+          const meta = document.createElement('span');
+          meta.className = 'result-meta';
+          meta.dir = 'ltr';
+          meta.textContent = metaBits.join(' · ');
+          main.appendChild(meta);
+        }
+        const badge = document.createElement('span');
+        badge.className = 'source-badge';
+        badge.textContent = res.source || '';
+        li.appendChild(main);
+        li.appendChild(badge);
+        li.addEventListener('click', () => loadSong(res.url, res.title, res.source));
+        results.appendChild(li);
+      }
+    } catch (err) {
+      status.textContent = 'Search failed: ' + err.message;
+    }
   });
 }
 
