@@ -1,0 +1,89 @@
+<meta charset="utf-8">
+<title>Chords for All</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+
+<header>
+  <h1 id="app-title">🎸 Chords for All 🎹</h1>
+  <p class="tagline">Search a song, paste a link, or write your own — transpose it, pick guitar or piano, and see exactly how to play every chord.</p>
+</header>
+
+<main>
+  <section class="panel" id="input-panel">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="search">🔎 Search</button>
+      <button class="tab-btn" data-tab="url">🔗 Paste link</button>
+      <button class="tab-btn" data-tab="manual">✍️ My chords</button>
+      <button class="tab-btn" data-tab="favorites">⭐ Favorites</button>
+    </div>
+
+    <div class="tab-content" id="tab-search">
+      <form id="search-form">
+        <input type="text" id="search-input" placeholder="Song name, e.g. Wonderwall" autocomplete="off">
+        <input type="text" id="search-artist-input" placeholder="Artist (optional)" autocomplete="off">
+        <button type="submit">Search</button>
+      </form>
+      <p class="hint">Needs a server to search Ultimate Guitar/tab4u &mdash; not available in this static deployment. Try "My chords" instead.</p>
+      <div id="search-status" class="status"></div>
+      <ul id="search-results" class="result-list"></ul>
+    </div>
+
+    <div class="tab-content hidden" id="tab-url">
+      <form id="url-form">
+        <input type="text" id="url-input" placeholder="Paste a tabs.ultimate-guitar.com or tab4u.com song link" autocomplete="off">
+        <button type="submit">Load</button>
+      </form>
+      <p class="hint">Needs a server to fetch the page &mdash; not available in this static deployment. Try "My chords" instead.</p>
+    </div>
+
+    <div class="tab-content hidden" id="tab-manual">
+      <p class="hint">Use square brackets for chords, right before the lyric they go with — e.g. <code>[C]Amazing [G]grace how [Am]sweet the sound</code>. Section labels like <code>[Chorus]</code> work too. Hebrew lyrics are supported.</p>
+      <div class="manual-meta">
+        <input type="text" id="manual-title" placeholder="Song title (optional)" autocomplete="off">
+        <input type="text" id="manual-artist" placeholder="Artist (optional)" autocomplete="off">
+      </div>
+      <textarea id="manual-input" rows="8" placeholder="[C]Amazing [G]grace how [Am]sweet the [F]sound..."></textarea>
+      <button id="manual-load">Load chords</button>
+    </div>
+
+    <div class="tab-content hidden" id="tab-favorites">
+      <div id="favorites-status" class="status"></div>
+      <ul id="favorites-list" class="result-list"></ul>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="song-panel">
+    <div class="song-header">
+      <div class="song-titles">
+        <h2 id="song-title">—</h2>
+        <div id="song-artist" class="artist"></div>
+        <div id="song-source" class="song-source"></div>
+      </div>
+      <button id="favorite-btn" type="button" class="favorite-btn">☆ Save</button>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <span class="label">Key: <strong id="current-key">C</strong><span id="key-offset" class="key-offset"></span></span>
+        <button id="transpose-down" title="Transpose down a semitone">−</button>
+        <button id="transpose-up" title="Transpose up a semitone">+</button>
+        <select id="key-select"></select>
+      </div>
+      <div class="control-group mode-toggle">
+        <button class="mode-btn active" data-mode="guitar">🎸 Guitar</button>
+        <button class="mode-btn" data-mode="piano">🎹 Piano</button>
+      </div>
+    </div>
+
+    <div id="chord-sheet" class="chord-sheet"></div>
+
+    <div class="diagrams-header">
+      <h3>Chords used <span id="diagram-mode-label">(guitar)</span></h3>
+    </div>
+    <div id="diagrams" class="diagrams"></div>
+  </section>
+</main>
+
+<script src="app.js"></script>
