@@ -722,14 +722,15 @@ async function toggleFavorite() {
    diverging copies of this file to keep in sync. */
 
 const IS_STATIC_DEPLOY = /\.github\.io$/i.test(location.hostname);
+// On GitHub Pages the search/fetch backend is a Cloudflare Worker (worker/); elsewhere it is server.ps1 on the same origin.
+const API_BASE = IS_STATIC_DEPLOY ? 'https://chords-api.mordechaybuzaglo.workers.dev' : '';
 const NO_BACKEND_MESSAGE = 'This static deployment has no server, so loading a song from a link isn’t available here — use "My chords" to paste the chords/lyrics in directly, or run server.ps1 locally for full search.';
 
 async function loadSong(url, fallbackTitle, source) {
   const status = document.getElementById('search-status');
-  if (IS_STATIC_DEPLOY) { status.textContent = NO_BACKEND_MESSAGE; return; }
   status.textContent = 'Loading chords…';
   try {
-    const r = await fetch('/api/fetch?url=' + encodeURIComponent(url));
+    const r = await fetch(API_BASE + '/api/fetch?url=' + encodeURIComponent(url));
     const data = await r.json();
     if (data.error) throw new Error(data.error);
     const text = stripUGTags(data.raw || '');
@@ -795,11 +796,6 @@ function init() {
 
   document.getElementById('search-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (IS_STATIC_DEPLOY) {
-      document.getElementById('search-results').innerHTML = '';
-      document.getElementById('search-status').textContent = NO_BACKEND_MESSAGE;
-      return;
-    }
     const song = document.getElementById('search-input').value.trim();
     const artist = document.getElementById('search-artist-input').value.trim();
     if (!song) return;
@@ -809,7 +805,7 @@ function init() {
     results.innerHTML = '';
     status.textContent = 'Searching Ultimate Guitar & tab4u…';
     try {
-      const r = await fetch('/api/search?q=' + encodeURIComponent(q));
+      const r = await fetch(API_BASE + '/api/search?q=' + encodeURIComponent(q));
       const data = await r.json();
       if (data.error) throw new Error(data.error);
       if (!data.results || data.results.length === 0) {
